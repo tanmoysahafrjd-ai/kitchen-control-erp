@@ -1,0 +1,6 @@
+{
+  "name": "Kitchen Control Production ERP",
+  "description": "Multi-branch Kitchen Management & Production ERP with Role-Based Access Control, Deep Freezer Inventory, Department Operations, and Multi-Ingredient Effective-Dated Recipes.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
