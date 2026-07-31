@@ -4,6 +4,7 @@ export interface User {
   id: string;
   name: string;
   email: string;
+  password?: string;
   role: Role;
   branchId: string;
   departmentId?: string; // For chefs
@@ -97,3 +98,14 @@ export interface AuditLog {
 }
 
 export type TimeFilter = 'today' | 'last_7_days' | 'last_30_days' | 'custom';
+
+export interface StockIssue {
+  id: string;
+  branchId: string;
+  departmentId: string;
+  itemId: string;
+  itemName: string;
+  qtyKg: number;
+  date: string; // YYYY-MM-DD
+  timestamp: string;
+}

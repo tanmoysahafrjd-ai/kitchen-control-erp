@@ -1,20 +1,28 @@
 import React, { useState } from 'react';
-import { InventoryItem, User, AuditLog } from '../types';
-import { Search, Plus, ArrowUpRight, Filter, AlertTriangle, FileSpreadsheet, Printer, X, Check, Eye } from 'lucide-react';
+import { InventoryItem, User, AuditLog, Department, StockIssue } from '../types';
+import { Search, Plus, ArrowUpRight, Filter, AlertTriangle, FileSpreadsheet, Printer, X, Check, Eye, Pencil } from 'lucide-react';
 
 interface DeepFreezerViewProps {
   items: InventoryItem[];
   setItems: React.Dispatch<React.SetStateAction<InventoryItem[]>>;
+  departments: Department[];
+  stockIssues: StockIssue[];
+  setStockIssues: React.Dispatch<React.SetStateAction<StockIssue[]>>;
   currentUser: User;
-  selectedDate: string;
+  selectedStartDate: string;
+  selectedEndDate: string;
   addAuditLog: (action: string, details: string) => void;
 }
 
 export const DeepFreezerView: React.FC<DeepFreezerViewProps> = ({
   items,
   setItems,
+  departments,
+  stockIssues,
+  setStockIssues,
   currentUser,
-  selectedDate,
+  selectedStartDate,
+  selectedEndDate,
   addAuditLog,
 }) => {
   const [searchQuery, setSearchQuery] = useState('');
@@ -25,6 +33,7 @@ export const DeepFreezerView: React.FC<DeepFreezerViewProps> = ({
   // Modals
   const [showPurchaseModal, setShowPurchaseModal] = useState(false);
   const [showIssueModal, setShowIssueModal] = useState(false);
+  const [showAdjustModal, setShowAdjustModal] = useState(false);
 
   // Purchase Form State
   const [purchaseItemId, setPurchaseItemId] = useState(items[0]?.id || '');
@@ -33,8 +42,12 @@ export const DeepFreezerView: React.FC<DeepFreezerViewProps> = ({
 
   // Issue Form State
   const [issueItemId, setIssueItemId] = useState(items[0]?.id || '');
-  const [issueDept, setIssueDept] = useState('Indian Kitchen');
+  const [issueDept, setIssueDept] = useState(departments[0]?.id || '');
   const [issueQty, setIssueQty] = useState('');
+
+  // Stock Adjustment Form State
+  const [adjustItemId, setAdjustItemId] = useState(items[0]?.id || '');
+  const [adjustNewStock, setAdjustNewStock] = useState('');
 
   const categories = ['All Categories', 'Chicken', 'Fish', 'Mutton', 'Vegetables', 'Dairy', 'Spices', 'Grocery'];
 
@@ -82,6 +95,9 @@ export const DeepFreezerView: React.FC<DeepFreezerViewProps> = ({
     const qty = parseFloat(issueQty);
     if (!qty || qty <= 0) return;
 
+    const targetItem = items.find((i) => i.id === issueItemId);
+    const targetDeptObj = departments.find((d) => d.id === issueDept);
+
     setItems((prev) =>
       prev.map((item) => {
         if (item.id === issueItemId) {
@@ -93,10 +109,55 @@ export const DeepFreezerView: React.FC<DeepFreezerViewProps> = ({
       })
     );
 
-    const targetItem = items.find((i) => i.id === issueItemId);
-    addAuditLog('ISSUE_TO_DEPT', `Issued ${qty} kg of ${targetItem?.name || 'Item'} to ${issueDept}.`);
+    setStockIssues((prev) => [
+      ...prev,
+      {
+        id: `si-${Date.now()}-${issueItemId}`,
+        branchId: targetItem?.branchId || 'annanagar',
+        departmentId: issueDept,
+        itemId: issueItemId,
+        itemName: targetItem?.name || 'Unknown',
+        qtyKg: qty,
+        date: new Date().toISOString().split('T')[0],
+        timestamp: new Date().toISOString(),
+      },
+    ]);
+
+    addAuditLog('ISSUE_TO_DEPT', `Issued ${qty} kg of ${targetItem?.name || 'Item'} to ${targetDeptObj?.name || issueDept}.`);
     setShowIssueModal(false);
     setIssueQty('');
+  };
+
+  const handleAdjustStock = (e: React.FormEvent) => {
+    e.preventDefault();
+    const newStock = parseFloat(adjustNewStock);
+    if (isNaN(newStock) || newStock < 0) return;
+
+    setItems((prev) =>
+      prev.map((item) => {
+        if (item.id === adjustItemId) {
+          return {
+            ...item,
+            openKg: newStock,
+            purchaseKg: 0,
+            issueKg: 0,
+            balanceKg: newStock,
+          };
+        }
+        return item;
+      })
+    );
+
+    const targetItem = items.find((i) => i.id === adjustItemId);
+    addAuditLog('ADJUST_STOCK', `Adjusted physical stock for ${targetItem?.name || 'Item'} to ${newStock} kg.`);
+    setShowAdjustModal(false);
+    setAdjustNewStock('');
+  };
+
+  const handleOpenAdjustModal = (item: InventoryItem) => {
+    setAdjustItemId(item.id);
+    setAdjustNewStock(item.balanceKg.toString());
+    setShowAdjustModal(true);
   };
 
   return (
@@ -203,10 +264,10 @@ export const DeepFreezerView: React.FC<DeepFreezerViewProps> = ({
                 <th className="py-3.5 px-4 text-right">Open (kg)</th>
                 <th className="py-3.5 px-4 text-right">Purchase (kg)</th>
                 <th className="py-3.5 px-4 text-right">Issue to Dept. (kg)</th>
-                <th className="py-3.5 px-4 text-right font-bold text-slate-800">Balance (kg)</th>
+                <th className="py-3.5 px-4 text-right font-bold text-blue-900 bg-blue-50/60">Current Stock (Deep Freezer)</th>
                 <th className="py-3.5 px-4 text-right">Rate (₹/kg)</th>
                 <th className="py-3.5 px-4 text-right">Value (₹)</th>
-                <th className="py-3.5 px-4 text-center w-16">Actions</th>
+                <th className="py-3.5 px-4 text-center w-20">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 text-sm">
@@ -239,7 +300,7 @@ export const DeepFreezerView: React.FC<DeepFreezerViewProps> = ({
                     <td className="py-3 px-4 text-right text-blue-600 font-mono font-medium">
                       {item.issueKg.toFixed(3)}
                     </td>
-                    <td className={`py-3 px-4 text-right font-mono font-bold ${isLow ? 'text-red-600' : 'text-slate-900'}`}>
+                    <td className={`py-3 px-4 text-right font-mono font-bold bg-blue-50/30 ${isLow ? 'text-red-600' : 'text-slate-900'}`}>
                       {item.balanceKg.toFixed(3)} {item.unit}
                     </td>
                     <td className="py-3 px-4 text-right text-slate-600 font-mono">₹{item.ratePerKg}</td>
@@ -247,13 +308,24 @@ export const DeepFreezerView: React.FC<DeepFreezerViewProps> = ({
                       ₹{value.toLocaleString('en-IN', { maximumFractionDigits: 2 })}
                     </td>
                     <td className="py-3 px-4 text-center">
-                      <button
-                        onClick={() => setSelectedItemForDetail(item)}
-                        className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-                        title="View Item Breakdown"
-                      >
-                        <Eye className="w-4 h-4" />
-                      </button>
+                      <div className="flex items-center justify-center space-x-1">
+                        <button
+                          onClick={() => setSelectedItemForDetail(item)}
+                          className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                          title="View Item Breakdown"
+                        >
+                          <Eye className="w-4 h-4" />
+                        </button>
+                        {currentUser.role !== 'kitchen_supervisor' && (
+                          <button
+                            onClick={() => handleOpenAdjustModal(item)}
+                            className="p-1.5 text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg transition-colors"
+                            title="Adjust Physical Deep Freezer Stock"
+                          >
+                            <Pencil className="w-4 h-4" />
+                          </button>
+                        )}
+                      </div>
                     </td>
                   </tr>
                 );
@@ -318,18 +390,25 @@ export const DeepFreezerView: React.FC<DeepFreezerViewProps> = ({
             <div className="space-y-3">
               <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider">Issued to Departments Breakdown</h4>
               <div className="space-y-2">
-                <div className="flex justify-between items-center bg-slate-50 p-3 rounded-xl text-sm">
-                  <span className="font-medium text-slate-700">Indian Kitchen</span>
-                  <span className="font-mono font-bold text-blue-600">5.000 kg</span>
-                </div>
-                <div className="flex justify-between items-center bg-slate-50 p-3 rounded-xl text-sm">
-                  <span className="font-medium text-slate-700">Chinese Kitchen</span>
-                  <span className="font-mono font-bold text-blue-600">2.000 kg</span>
-                </div>
-                <div className="flex justify-between items-center bg-slate-50 p-3 rounded-xl text-sm">
-                  <span className="font-medium text-slate-700">South Indian Kitchen</span>
-                  <span className="font-mono font-bold text-blue-600">1.000 kg</span>
-                </div>
+                {(() => {
+                  const itemIssues = departments.map(d => {
+                    const totalIssued = stockIssues
+                      .filter(si => si.departmentId === d.id && si.itemId === selectedItemForDetail.id)
+                      .reduce((sum, si) => sum + si.qtyKg, 0);
+                    return { deptName: d.name, qty: totalIssued };
+                  }).filter(x => x.qty > 0);
+
+                  if (itemIssues.length === 0) {
+                    return <p className="text-sm text-slate-500 italic">No issues recorded for this item yet.</p>;
+                  }
+
+                  return itemIssues.map((issue, idx) => (
+                    <div key={idx} className="flex justify-between items-center bg-slate-50 p-3 rounded-xl text-sm">
+                      <span className="font-medium text-slate-700">{issue.deptName}</span>
+                      <span className="font-mono font-bold text-blue-600">{issue.qty.toFixed(3)} kg</span>
+                    </div>
+                  ));
+                })()}
               </div>
             </div>
 
@@ -450,10 +529,9 @@ export const DeepFreezerView: React.FC<DeepFreezerViewProps> = ({
                   onChange={(e) => setIssueDept(e.target.value)}
                   className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-800 font-medium focus:outline-none focus:ring-2 focus:ring-blue-500/20"
                 >
-                  <option value="Indian Kitchen">Indian Kitchen</option>
-                  <option value="Chinese Kitchen">Chinese Kitchen</option>
-                  <option value="South Indian Kitchen">South Indian Kitchen</option>
-                  <option value="Tandoori Kitchen">Tandoori Kitchen</option>
+                  {departments.map(d => (
+                    <option key={d.id} value={d.id}>{d.name}</option>
+                  ))}
                 </select>
               </div>
 
@@ -484,6 +562,73 @@ export const DeepFreezerView: React.FC<DeepFreezerViewProps> = ({
                 className="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-xl text-sm shadow-sm transition-colors"
               >
                 Issue Stock
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
+
+      {/* Physical Stock Adjustment Modal */}
+      {showAdjustModal && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <form onSubmit={handleAdjustStock} className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-5">
+            <div className="flex justify-between items-center pb-3 border-b border-slate-100">
+              <div>
+                <h3 className="text-lg font-bold text-slate-900">Adjust Deep Freezer Stock</h3>
+                <p className="text-xs text-slate-500">Correct actual physical stock present in deep fridge</p>
+              </div>
+              <button type="button" onClick={() => setShowAdjustModal(false)} className="p-1.5 text-slate-400 hover:text-slate-600 rounded-lg">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="space-y-4">
+              <div>
+                <label className="block text-xs font-semibold text-slate-600 uppercase mb-1">Select Raw Material</label>
+                <select
+                  value={adjustItemId}
+                  onChange={(e) => {
+                    setAdjustItemId(e.target.value);
+                    const found = items.find((i) => i.id === e.target.value);
+                    if (found) setAdjustNewStock(found.balanceKg.toString());
+                  }}
+                  className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-800 font-medium focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
+                >
+                  {items.map((i) => (
+                    <option key={i.id} value={i.id}>
+                      {i.name} ({i.category}) - Current: {i.balanceKg} kg
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-600 uppercase mb-1">Actual Stock Count in Deep Fridge (kg)</label>
+                <input
+                  type="number"
+                  step="0.001"
+                  required
+                  placeholder="e.g. 15.5"
+                  value={adjustNewStock}
+                  onChange={(e) => setAdjustNewStock(e.target.value)}
+                  className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-mono font-bold text-blue-700 focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
+                />
+              </div>
+            </div>
+
+            <div className="flex justify-end space-x-3 pt-4 border-t border-slate-100">
+              <button
+                type="button"
+                onClick={() => setShowAdjustModal(false)}
+                className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold rounded-xl text-sm transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                className="px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold rounded-xl text-sm shadow-sm transition-colors"
+              >
+                Save Stock Adjustment
               </button>
             </div>
           </form>

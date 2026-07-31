@@ -12,7 +12,11 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab, curre
   const navItems = [
     { id: 'deep_freezer', label: 'Deep Freezer', icon: Snowflake, description: 'Main Store Inventory' },
     { id: 'departments', label: 'Kitchen Departments', icon: UtensilsCrossed, description: 'Preparation & Sales' },
-    { id: 'recipes', label: 'Recipes & Ingredients', icon: BookOpen, description: 'BOM & Effective Dates' },
+    ...(currentUser.role === 'admin'
+      ? [
+          { id: 'recipes', label: 'Recipes & Ingredients', icon: BookOpen, description: 'BOM & Effective Dates' },
+        ]
+      : []),
     { id: 'reports', label: 'Reports & Analytics', icon: BarChart3, description: 'Period Stock & Valuation' },
     ...(currentUser.role === 'admin'
       ? [

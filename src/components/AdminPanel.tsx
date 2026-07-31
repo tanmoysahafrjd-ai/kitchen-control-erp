@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { User, Branch, Department, AuditLog, InventoryItem, Recipe, RecipeIngredient } from '../types';
-import { Users, Shield, Plus, Building2, CheckCircle2, Key, UserPlus, FileText, Trash2, X, Utensils, Pencil, AlertTriangle } from 'lucide-react';
+import { Users, Shield, Plus, Building2, CheckCircle2, Key, UserPlus, FileText, Trash2, X, Utensils, Pencil, AlertTriangle, Eye, EyeOff, Lock } from 'lucide-react';
 
 interface AdminPanelProps {
   users: User[];
@@ -15,6 +15,8 @@ interface AdminPanelProps {
   recipes: Recipe[];
   setRecipes: React.Dispatch<React.SetStateAction<Recipe[]>>;
   addAuditLog: (action: string, details: string) => void;
+  currentBranch?: Branch;
+  setCurrentBranch?: (branch: Branch) => void;
 }
 
 export const AdminPanel: React.FC<AdminPanelProps> = ({
@@ -30,6 +32,8 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
   recipes,
   setRecipes,
   addAuditLog,
+  currentBranch,
+  setCurrentBranch,
 }) => {
   const [activeSubTab, setActiveSubTab] = useState<'users' | 'items' | 'branches' | 'recipes'>('users');
 
@@ -66,6 +70,9 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
   const [editingUser, setEditingUser] = useState<User | null>(null);
   const [newUserName, setNewUserName] = useState('');
   const [newUserEmail, setNewUserEmail] = useState('');
+  const [newUserPassword, setNewUserPassword] = useState('');
+  const [showPasswordInModal, setShowPasswordInModal] = useState(false);
+  const [visiblePasswordUserId, setVisiblePasswordUserId] = useState<string | null>(null);
   const [newUserRole, setNewUserRole] = useState<'admin' | 'store_incharge' | 'kitchen_supervisor' | 'department_chef'>('store_incharge');
   const [newUserBranchId, setNewUserBranchId] = useState(branches[0]?.id || '');
 
@@ -74,6 +81,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
   const [newItemName, setNewItemName] = useState('');
   const [newItemCategory, setNewItemCategory] = useState<'Chicken' | 'Fish' | 'Mutton' | 'Vegetables' | 'Dairy' | 'Spices' | 'Grocery'>('Chicken');
   const [newItemRate, setNewItemRate] = useState('300');
+  const [newItemStock, setNewItemStock] = useState('0');
   const [newItemBranchId, setNewItemBranchId] = useState(branches[0]?.id || '');
   const [selectedBranchIds, setSelectedBranchIds] = useState<string[]>(['all']);
   const [selectedDepartmentIds, setSelectedDepartmentIds] = useState<string[]>(['all']);
@@ -287,6 +295,8 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
     setEditingUser(null);
     setNewUserName('');
     setNewUserEmail('');
+    setNewUserPassword('');
+    setShowPasswordInModal(false);
     setNewUserRole('store_incharge');
     setNewUserBranchId(branches[0]?.id || '');
     setShowUserModal(true);
@@ -296,6 +306,8 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
     setEditingUser(u);
     setNewUserName(u.name);
     setNewUserEmail(u.email);
+    setNewUserPassword(u.password || '');
+    setShowPasswordInModal(false);
     setNewUserRole(u.role);
     setNewUserBranchId(u.branchId);
     setShowUserModal(true);
@@ -303,7 +315,8 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
 
   const handleSaveUser = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newUserName.trim() || !newUserEmail.trim()) return;
+    if (!newUserEmail.trim()) return;
+    const finalName = newUserName.trim() || newUserEmail.trim();
 
     if (editingUser) {
       setUsers((prev) =>
@@ -311,27 +324,29 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
           u.id === editingUser.id
             ? {
                 ...u,
-                name: newUserName,
-                email: newUserEmail,
+                name: finalName,
+                email: newUserEmail.trim(),
+                password: newUserPassword || u.password || 'pass1234',
                 role: newUserRole,
                 branchId: newUserBranchId || branches[0]?.id,
               }
             : u
         )
       );
-      addAuditLog('UPDATE_USER', `Updated user ${newUserName}`);
+      addAuditLog('UPDATE_USER', `Updated user ${finalName}`);
     } else {
       const createdUser: User = {
         id: `u-${Date.now()}`,
-        name: newUserName,
-        email: newUserEmail,
+        name: finalName,
+        email: newUserEmail.trim(),
+        password: newUserPassword || 'pass1234',
         role: newUserRole,
         branchId: newUserBranchId || branches[0]?.id,
         active: true,
         createdAt: new Date().toISOString().split('T')[0],
       };
       setUsers((prev) => [...prev, createdUser]);
-      addAuditLog('CREATE_USER', `Created new user ${newUserName} with role ${newUserRole}`);
+      addAuditLog('CREATE_USER', `Created new user ${finalName} with role ${newUserRole}`);
     }
     setShowUserModal(false);
     setEditingUser(null);
@@ -353,6 +368,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
     setNewItemName('');
     setNewItemCategory('Chicken');
     setNewItemRate('300');
+    setNewItemStock('0');
     setNewItemBranchId(branches[0]?.id || '');
     setSelectedBranchIds(['all']);
     setSelectedDepartmentIds(['all']);
@@ -364,6 +380,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
     setNewItemName(item.name);
     setNewItemCategory(item.category);
     setNewItemRate(item.ratePerKg.toString());
+    setNewItemStock(item.balanceKg.toString());
     setNewItemBranchId(item.branchId);
     
     const isAllBranch = !item.branchIds || item.branchIds.includes('all') || item.branchIds.length === 0 || item.branchIds.length >= branches.length || item.branchId === 'all';
@@ -403,6 +420,8 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
     const isAllDeptSelected = selectedDepartmentIds.includes('all') || selectedDepartmentIds.length >= uniqueDeptNames.length || selectedDepartmentIds.length === 0;
     const finalDeptIds = isAllDeptSelected ? ['all'] : selectedDepartmentIds;
 
+    const stockVal = parseFloat(newItemStock) || 0;
+
     if (editingItem) {
       setInventoryItems((prev) =>
         prev.map((i) =>
@@ -415,11 +434,13 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                 name: newItemName,
                 category: newItemCategory,
                 ratePerKg: parseFloat(newItemRate) || 200,
+                openKg: stockVal,
+                balanceKg: stockVal,
               }
             : i
         )
       );
-      addAuditLog('UPDATE_ITEM', `Updated raw material item ${newItemName} with branch & department mapping`);
+      addAuditLog('UPDATE_ITEM', `Updated raw material item ${newItemName} (Current Stock: ${stockVal} kg)`);
     } else {
       const newItem: InventoryItem = {
         id: `item-${Date.now()}`,
@@ -428,17 +449,17 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
         departmentIds: finalDeptIds,
         name: newItemName,
         category: newItemCategory,
-        openKg: 10.0,
+        openKg: stockVal,
         purchaseKg: 0.0,
         issueKg: 0.0,
-        balanceKg: 10.0,
+        balanceKg: stockVal,
         ratePerKg: parseFloat(newItemRate) || 200,
         unit: 'kg',
         minStockAlert: 5,
         active: true,
       };
       setInventoryItems((prev) => [...prev, newItem]);
-      addAuditLog('CREATE_ITEM', `Added new raw material item: ${newItemName} mapped to ${finalBranchIds.join(', ')}`);
+      addAuditLog('CREATE_ITEM', `Added new raw material item: ${newItemName} with stock ${stockVal} kg`);
     }
     setShowItemModal(false);
     setEditingItem(null);
@@ -538,7 +559,8 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
               <thead>
                 <tr className="bg-slate-50/80 border-b border-slate-100 text-xs font-bold text-slate-500 uppercase tracking-wider">
                   <th className="py-3.5 px-4">User Name</th>
-                  <th className="py-3.5 px-4">Email / Login ID</th>
+                  <th className="py-3.5 px-4">User ID</th>
+                  <th className="py-3.5 px-4">Password</th>
                   <th className="py-3.5 px-4">Assigned Role</th>
                   <th className="py-3.5 px-4">Branch</th>
                   <th className="py-3.5 px-4 text-center">Status</th>
@@ -548,6 +570,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
               <tbody className="divide-y divide-slate-100 text-sm">
                 {users.map((u) => {
                   const branch = branches.find((b) => b.id === u.branchId);
+                  const isPasswordVisible = visiblePasswordUserId === u.id;
                   return (
                     <tr key={u.id} className="hover:bg-slate-50/60 transition-colors">
                       <td className="py-3.5 px-4 font-semibold text-slate-800 flex items-center space-x-2">
@@ -555,6 +578,23 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                         <span>{u.name}</span>
                       </td>
                       <td className="py-3.5 px-4 font-mono text-xs text-slate-600">{u.email}</td>
+                      <td className="py-3.5 px-4 font-mono text-xs">
+                        <div className="inline-flex items-center space-x-1.5 bg-slate-100 px-2.5 py-1 rounded-lg border border-slate-200/60 text-slate-700">
+                          <Lock className="w-3 h-3 text-slate-400" />
+                          <span>
+                            {isPasswordVisible
+                              ? (u.password || '••••••••')
+                              : (u.password ? '••••••••' : 'No pass set')}
+                          </span>
+                          <button
+                            onClick={() => setVisiblePasswordUserId(isPasswordVisible ? null : u.id)}
+                            className="p-0.5 text-slate-400 hover:text-slate-700 rounded transition-colors"
+                            title={isPasswordVisible ? "Hide Password" : "Show Password"}
+                          >
+                            {isPasswordVisible ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                          </button>
+                        </div>
+                      </td>
                       <td className="py-3.5 px-4">
                         <span className={`inline-block px-2.5 py-1 rounded-full text-xs font-bold uppercase tracking-wider ${
                           u.role === 'admin' ? 'bg-purple-50 text-purple-700 border border-purple-200' :
@@ -608,14 +648,20 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
       {/* Raw Material Master Tab */}
       {activeSubTab === 'items' && (
         <div className="space-y-4">
-          <div className="flex justify-between items-center bg-white p-4 rounded-2xl shadow-sm border border-slate-100">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between bg-white p-4 rounded-2xl shadow-sm border border-slate-100 gap-3">
             <div>
-              <h3 className="text-lg font-bold text-slate-900">Raw Material Master Catalogue</h3>
-              <p className="text-xs text-slate-500">Define raw materials and items for deep freezer inventory across branches.</p>
+              <div className="flex items-center space-x-2 flex-wrap gap-y-1">
+                <h3 className="text-lg font-bold text-slate-900">Raw Material Master Catalogue</h3>
+                <span className="px-2.5 py-1 bg-emerald-50 text-emerald-800 border border-emerald-200/80 rounded-full text-xs font-bold flex items-center space-x-1">
+                  <Building2 className="w-3.5 h-3.5 text-emerald-600" />
+                  <span>Toggled Branch: {currentBranch?.name || 'All Branches'}</span>
+                </span>
+              </div>
+              <p className="text-xs text-slate-500 mt-1">Define raw materials, branch mappings, and current stock levels for deep freezer inventory.</p>
             </div>
             <button
               onClick={handleOpenCreateItem}
-              className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold rounded-xl text-sm shadow-sm flex items-center space-x-2 transition-all"
+              className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold rounded-xl text-sm shadow-sm flex items-center space-x-2 transition-all shrink-0"
             >
               <Plus className="w-4 h-4" />
               <span>Add Raw Material</span>
@@ -639,6 +685,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
               <tbody className="divide-y divide-slate-100 text-sm">
                 {inventoryItems.map((item) => {
                   const isAllBranches = item.branchIds?.includes('all') || (!item.branchIds && item.branchId === 'all') || (item.branchIds && item.branchIds.length >= branches.length);
+                  const isMappedToCurrentBranch = isAllBranches || (currentBranch && (item.branchIds?.includes(currentBranch.id) || item.branchId === currentBranch.id));
                   const uniqueDeptNames = Array.from(new Set(departments.map((d) => d.name)));
                   const isAllDepts = item.departmentIds?.includes('all') || !item.departmentIds || item.departmentIds.length === 0 || (item.departmentIds && item.departmentIds.length >= uniqueDeptNames.length);
 
@@ -688,7 +735,14 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                         </span>
                       </td>
                       <td className="py-3.5 px-4 text-right font-mono font-semibold text-slate-800">₹{item.ratePerKg}</td>
-                      <td className="py-3.5 px-4 text-right font-mono font-bold text-blue-600">{item.balanceKg} {item.unit}</td>
+                      <td className="py-3.5 px-4 text-right font-mono">
+                        <div className="flex flex-col items-end">
+                          <span className="font-bold text-blue-600">{item.balanceKg} {item.unit}</span>
+                          {!isMappedToCurrentBranch && currentBranch && (
+                            <span className="text-[10px] text-amber-600 font-sans font-medium">Not mapped in {currentBranch.name}</span>
+                          )}
+                        </div>
+                      </td>
                       <td className="py-3.5 px-4 text-center">
                         <button
                           onClick={() => handleToggleItemActive(item.id)}
@@ -964,11 +1018,12 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
 
             <div className="space-y-4">
               <div>
-                <label className="block text-xs font-semibold text-slate-600 uppercase mb-1">Full Name</label>
+                <label className="block text-xs font-semibold text-slate-600 uppercase mb-1">
+                  Full Name <span className="text-[10px] text-slate-400 font-normal">(Optional)</span>
+                </label>
                 <input
                   type="text"
-                  required
-                  placeholder="e.g. Amit Sharma"
+                  placeholder="e.g. Amit Sharma (optional)"
                   value={newUserName}
                   onChange={(e) => setNewUserName(e.target.value)}
                   className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium text-slate-800 focus:outline-none"
@@ -976,15 +1031,40 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-slate-600 uppercase mb-1">Email / Login ID</label>
+                <label className="block text-xs font-semibold text-slate-600 uppercase mb-1">User ID</label>
                 <input
-                  type="email"
+                  type="text"
                   required
-                  placeholder="user@hotelgrand.com"
+                  placeholder="e.g. siva, store.annanagar"
                   value={newUserEmail}
                   onChange={(e) => setNewUserEmail(e.target.value)}
-                  className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium text-slate-800 focus:outline-none"
+                  className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium text-slate-800 focus:outline-none font-mono"
                 />
+              </div>
+
+              <div>
+                <div className="flex justify-between items-center mb-1">
+                  <label className="block text-xs font-semibold text-slate-600 uppercase">Account Password</label>
+                  {editingUser && <span className="text-[10px] text-slate-400 font-normal">(leave blank to keep current)</span>}
+                </div>
+                <div className="relative">
+                  <input
+                    type={showPasswordInModal ? 'text' : 'password'}
+                    required={!editingUser}
+                    placeholder="Set user password"
+                    value={newUserPassword}
+                    onChange={(e) => setNewUserPassword(e.target.value)}
+                    className="w-full pl-3.5 pr-10 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPasswordInModal(!showPasswordInModal)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-1 rounded transition-colors"
+                    title={showPasswordInModal ? "Hide Password" : "Show Password"}
+                  >
+                    {showPasswordInModal ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                </div>
               </div>
 
               <div className="grid grid-cols-2 gap-3">
@@ -1065,7 +1145,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 <div>
                   <label className="block text-xs font-semibold text-slate-600 uppercase mb-1">Category</label>
                   <select
@@ -1091,6 +1171,19 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                     value={newItemRate}
                     onChange={(e) => setNewItemRate(e.target.value)}
                     className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-mono text-slate-800 focus:outline-none"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-slate-600 uppercase mb-1">Initial / Current Stock (kg)</label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    required
+                    placeholder="0.00"
+                    value={newItemStock}
+                    onChange={(e) => setNewItemStock(e.target.value)}
+                    className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-mono font-bold text-blue-600 focus:outline-none"
                   />
                 </div>
               </div>

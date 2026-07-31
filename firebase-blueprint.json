@@ -1,0 +1,122 @@
+{
+  "entities": {
+    "users": {
+      "title": "User",
+      "description": "System users and staff accounts",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "email": { "type": "string" },
+        "role": { "type": "string" },
+        "branchId": { "type": "string" },
+        "departmentId": { "type": "string" },
+        "active": { "type": "boolean" },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["id", "name", "email", "role", "branchId"]
+    },
+    "branches": {
+      "title": "Branch",
+      "description": "Kitchen branches and locations",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "code": { "type": "string" },
+        "location": { "type": "string" },
+        "active": { "type": "boolean" }
+      },
+      "required": ["id", "name", "code"]
+    },
+    "departments": {
+      "title": "Department",
+      "description": "Kitchen departments like Indian, Chinese, Tandoori",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "branchId": { "type": "string" },
+        "iconName": { "type": "string" }
+      },
+      "required": ["id", "name", "branchId"]
+    },
+    "inventory": {
+      "title": "InventoryItem",
+      "description": "Central stock items and raw materials",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "branchId": { "type": "string" },
+        "name": { "type": "string" },
+        "category": { "type": "string" },
+        "openKg": { "type": "number" },
+        "purchaseKg": { "type": "number" },
+        "issueKg": { "type": "number" },
+        "balanceKg": { "type": "number" },
+        "ratePerKg": { "type": "number" },
+        "unit": { "type": "string" },
+        "minStockAlert": { "type": "number" },
+        "active": { "type": "boolean" }
+      },
+      "required": ["id", "name", "category"]
+    },
+    "recipes": {
+      "title": "Recipe",
+      "description": "Department recipes and portion ingredient requirements",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "branchId": { "type": "string" },
+        "departmentId": { "type": "string" },
+        "dishName": { "type": "string" },
+        "portionUnit": { "type": "string" },
+        "effectiveFrom": { "type": "string" },
+        "active": { "type": "boolean" }
+      },
+      "required": ["id", "departmentId", "dishName"]
+    },
+    "dishEntries": {
+      "title": "DepartmentDishEntry",
+      "description": "Daily dish production and portion tracking entries",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "branchId": { "type": "string" },
+        "departmentId": { "type": "string" },
+        "date": { "type": "string" },
+        "dishName": { "type": "string" },
+        "openingPortion": { "type": "number" },
+        "preparedPortion": { "type": "number" },
+        "closingPortion": { "type": "number" },
+        "salesPortion": { "type": "number" }
+      },
+      "required": ["id", "departmentId", "date", "dishName"]
+    },
+    "auditLogs": {
+      "title": "AuditLog",
+      "description": "Activity audit log history",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "timestamp": { "type": "string" },
+        "userId": { "type": "string" },
+        "userName": { "type": "string" },
+        "role": { "type": "string" },
+        "branchId": { "type": "string" },
+        "action": { "type": "string" },
+        "details": { "type": "string" }
+      },
+      "required": ["id", "timestamp", "action"]
+    }
+  },
+  "accessControls": {
+    "users": { "read": "true", "write": "true" },
+    "branches": { "read": "true", "write": "true" },
+    "departments": { "read": "true", "write": "true" },
+    "inventory": { "read": "true", "write": "true" },
+    "recipes": { "read": "true", "write": "true" },
+    "dishEntries": { "read": "true", "write": "true" },
+    "auditLogs": { "read": "true", "write": "true" }
+  }
+}

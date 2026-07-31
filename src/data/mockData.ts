@@ -20,16 +20,16 @@ export const INITIAL_DEPARTMENTS: Department[] = [
 ];
 
 export const INITIAL_USERS: User[] = [
-  { id: 'u1', name: 'System Admin', email: 'admin@hotelgrand.com', role: 'admin', branchId: 'annanagar', active: true, createdAt: '2026-01-01' },
+  { id: 'u1', name: 'System Admin', email: 'admin@hotelgrand.com', password: 'admin123#password', role: 'admin', branchId: 'annanagar', active: true, createdAt: '2026-01-01' },
   // Annanagar Users
-  { id: 'u2', name: 'Store Incharge (Annanagar)', email: 'store.annanagar@hotelgrand.com', role: 'store_incharge', branchId: 'annanagar', active: true, createdAt: '2026-01-10' },
-  { id: 'u3', name: 'Kitchen Supervisor (Annanagar)', email: 'supervisor.annanagar@hotelgrand.com', role: 'kitchen_supervisor', branchId: 'annanagar', active: true, createdAt: '2026-01-12' },
+  { id: 'u2', name: 'Store Incharge (Annanagar)', email: 'store.annanagar@hotelgrand.com', password: 'pass@annanagar123', role: 'store_incharge', branchId: 'annanagar', active: true, createdAt: '2026-01-10' },
+  { id: 'u3', name: 'Kitchen Supervisor (Annanagar)', email: 'supervisor.annanagar@hotelgrand.com', password: 'pass@annanagar123', role: 'kitchen_supervisor', branchId: 'annanagar', active: true, createdAt: '2026-01-12' },
   // Valechery Users
-  { id: 'u4', name: 'Store Incharge (Valechery)', email: 'store.valechery@hotelgrand.com', role: 'store_incharge', branchId: 'valechery', active: true, createdAt: '2026-01-15' },
-  { id: 'u5', name: 'Kitchen Supervisor (Valechery)', email: 'supervisor.valechery@hotelgrand.com', role: 'kitchen_supervisor', branchId: 'valechery', active: true, createdAt: '2026-01-16' },
+  { id: 'u4', name: 'Store Incharge (Valechery)', email: 'store.valechery@hotelgrand.com', password: 'pass@valechery123', role: 'store_incharge', branchId: 'valechery', active: true, createdAt: '2026-01-15' },
+  { id: 'u5', name: 'Kitchen Supervisor (Valechery)', email: 'supervisor.valechery@hotelgrand.com', password: 'pass@valechery123', role: 'kitchen_supervisor', branchId: 'valechery', active: true, createdAt: '2026-01-16' },
   // Ra Puram Users
-  { id: 'u6', name: 'Store Incharge (Ra Puram)', email: 'store.rapuram@hotelgrand.com', role: 'store_incharge', branchId: 'rapuram', active: true, createdAt: '2026-01-20' },
-  { id: 'u7', name: 'Kitchen Supervisor (Ra Puram)', email: 'supervisor.rapuram@hotelgrand.com', role: 'kitchen_supervisor', branchId: 'rapuram', active: true, createdAt: '2026-01-22' },
+  { id: 'u6', name: 'Store Incharge (Ra Puram)', email: 'store.rapuram@hotelgrand.com', password: 'pass@rapuram123', role: 'store_incharge', branchId: 'rapuram', active: true, createdAt: '2026-01-20' },
+  { id: 'u7', name: 'Kitchen Supervisor (Ra Puram)', email: 'supervisor.rapuram@hotelgrand.com', password: 'pass@rapuram123', role: 'kitchen_supervisor', branchId: 'rapuram', active: true, createdAt: '2026-01-22' },
 ];
 
 export const INITIAL_INVENTORY: InventoryItem[] = [
